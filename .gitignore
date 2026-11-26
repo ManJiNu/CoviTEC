@@ -1,0 +1,10 @@
+bin/
+obj/
+.vs/
+.idea/
+*.user
+*.suo
+TestResults/
+
+# Credenciales y configuración propia de cada computadora
+appsettings.Local.json
