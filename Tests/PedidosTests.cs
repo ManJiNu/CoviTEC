@@ -86,23 +86,31 @@ internal sealed class GlobalFalso : IInventarioGlobal
     private string[] _codigos = Array.Empty<string>();
     private int[] _cantidades = Array.Empty<int>();
 
+    private readonly object _candado = new(); // con RabbitMQ real lo usan hilos distintos
+
     public int Existencia(string sede, string codigo)
     {
-        for (int i = 0; i < _sedes.Length; i++) if (_sedes[i] == sede && _codigos[i] == codigo) return _cantidades[i];
-        return 0;
+        lock (_candado)
+        {
+            for (int i = 0; i < _sedes.Length; i++) if (_sedes[i] == sede && _codigos[i] == codigo) return _cantidades[i];
+            return 0;
+        }
     }
 
     public void Actualizar(string sede, string codigo, int cantidad)
     {
-        for (int i = 0; i < _sedes.Length; i++)
+        lock (_candado)
         {
-            if (_sedes[i] != sede || _codigos[i] != codigo) continue;
-            _cantidades[i] = cantidad;
-            return;
+            for (int i = 0; i < _sedes.Length; i++)
+            {
+                if (_sedes[i] != sede || _codigos[i] != codigo) continue;
+                _cantidades[i] = cantidad;
+                return;
+            }
+            Array.Resize(ref _sedes, _sedes.Length + 1); _sedes[^1] = sede;
+            Array.Resize(ref _codigos, _codigos.Length + 1); _codigos[^1] = codigo;
+            Array.Resize(ref _cantidades, _cantidades.Length + 1); _cantidades[^1] = cantidad;
         }
-        Array.Resize(ref _sedes, _sedes.Length + 1); _sedes[^1] = sede;
-        Array.Resize(ref _codigos, _codigos.Length + 1); _codigos[^1] = codigo;
-        Array.Resize(ref _cantidades, _cantidades.Length + 1); _cantidades[^1] = cantidad;
     }
 }
 
